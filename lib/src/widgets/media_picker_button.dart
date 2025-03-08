@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:my_media_module/src/controllers/media_controller.dart';
+import 'package:media_module/src/controllers/media_controller.dart';
 import '../models/media_item.dart';
 import '../models/media_options.dart';
 import '../utils/media_exceptions.dart';
@@ -40,7 +40,7 @@ class MediaPickerButton extends StatelessWidget {
   final String galleryOptionText;
 
   const MediaPickerButton({
-    Key? key,
+    super.key,
     required this.text,
     this.icon,
     required this.options,
@@ -52,7 +52,7 @@ class MediaPickerButton extends StatelessWidget {
     this.showBottomSheet = false,
     this.cameraOptionText = 'Take Photo',
     this.galleryOptionText = 'Choose from Gallery',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

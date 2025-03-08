@@ -1,4 +1,4 @@
-name: my_media_module
+name: media_module
 description: A simple Flutter package for handling image/video functionality with a clean, intuitive API.
 version: 0.0.1
 homepage: https://github.com/Cat1m/media_module.git

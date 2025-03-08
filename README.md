@@ -20,7 +20,7 @@ Thêm vào `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  my_media_module:
+  media_module:
     git:
       url: https://github.com/Cat1m/media_module.git
       ref: main  # hoặc tag cụ thể

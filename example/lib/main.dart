@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:my_media_module/my_media_module.dart';
+import 'package:media_module/media_module.dart';
 
 void main() {
   runApp(const MyApp());
@@ -72,15 +72,18 @@ class _MediaModuleDemoState extends State<MediaModuleDemo>
         ),
       );
 
+      // ignore: unnecessary_null_comparison
       if (result != null && result.isNotEmpty) {
         setState(() {
           _selectedMedia.addAll(result);
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Lỗi chụp ảnh: $e')));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi chụp ảnh: $e')));
+      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -117,9 +120,11 @@ class _MediaModuleDemoState extends State<MediaModuleDemo>
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Lỗi cắt ảnh: $e')));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi cắt ảnh: $e')));
+      });
     } finally {
       setState(() {
         _isLoading = false;

@@ -400,6 +400,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.11.1"
+  media_module:
+    dependency: "direct main"
+    description:
+      path: ".."
+      relative: true
+    source: path
+    version: "0.0.1"
   meta:
     dependency: transitive
     description:
@@ -424,13 +431,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.4.5"
-  my_media_module:
-    dependency: "direct main"
-    description:
-      path: ".."
-      relative: true
-    source: path
-    version: "0.0.1"
   package_config:
     dependency: transitive
     description:
