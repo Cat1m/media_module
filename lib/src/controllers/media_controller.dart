@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 import '../models/media_item.dart';
 import '../models/media_options.dart';
@@ -34,9 +35,33 @@ class MediaController {
           }
         }
       } else {
-        final photosPermission = await Permission.photos.request();
-        if (photosPermission.isDenied) {
-          throw MediaPermissionException('Photos permission denied');
+        // Nên dùng
+        if (Platform.isAndroid) {
+          // Kiểm tra phiên bản Android
+          if (int.parse(
+                await DeviceInfoPlugin().androidInfo.then(
+                  (info) => info.version.release,
+                ),
+              ) >=
+              13) {
+            // Android 13+: Kiểm tra READ_MEDIA_IMAGES
+            final mediaImagesPermission = await Permission.photos.request();
+            if (mediaImagesPermission.isDenied) {
+              throw MediaPermissionException('Media images permission denied');
+            }
+          } else {
+            // Android <13: Kiểm tra READ_EXTERNAL_STORAGE
+            final storagePermission = await Permission.storage.request();
+            if (storagePermission.isDenied) {
+              throw MediaPermissionException('Storage permission denied');
+            }
+          }
+        } else if (Platform.isIOS) {
+          // iOS: Kiểm tra quyền photos
+          final photosPermission = await Permission.photos.request();
+          if (photosPermission.isDenied) {
+            throw MediaPermissionException('Photos permission denied');
+          }
         }
       }
 
