@@ -1,42 +1,40 @@
-# Media Module
+# My Media Module
 
 ![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-*[Tiếng Việt](README_vi.md)*
+Một package Flutter đơn giản để xử lý hình ảnh và video với API trực quan, dễ sử dụng. Package này giúp đơn giản hóa các tác vụ phức tạp như chọn ảnh từ thư viện, chụp ảnh từ camera, cắt ảnh và quản lý các file media.
 
-A simple Flutter package for handling images and videos with an intuitive, easy-to-use API. This package simplifies complex tasks such as selecting images from the gallery, taking photos with the camera, cropping images, and managing media files.
+## Tính năng chính
 
-## Key Features
+- ✨ Chọn ảnh/video từ thư viện hoặc camera
+- 🖼️ Hỗ trợ chọn nhiều ảnh cùng lúc
+- ✂️ Cắt và chỉnh sửa ảnh với nhiều tùy chọn
+- 📱 Xem trước media với widget có thể tùy chỉnh
+- 🔒 Tự động xử lý quyền truy cập (camera, thư viện ảnh)
+- 🧩 API đơn giản, dễ tích hợp
 
-- ✨ Select images/videos from gallery or camera
-- 🖼️ Support for selecting multiple images at once
-- ✂️ Crop and edit images with various options
-- 📱 Preview media with customizable widgets
-- 🔒 Automatic permission handling (camera, photo library)
-- 🧩 Simple, easy-to-integrate API
+## Cài đặt
 
-## Installation
-
-Add to your `pubspec.yaml`:
+Thêm vào `pubspec.yaml`:
 
 ```yaml
 dependencies:
   media_module:
     git:
       url: https://github.com/Cat1m/media_module.git
-      ref: main  # or specific tag
+      ref: main  # hoặc tag cụ thể
 ```
 
-## Basic Usage
+## Sử dụng cơ bản
 
-### Initialize the controller
+### Khởi tạo controller
 
 ```dart
 final _mediaController = MediaController();
 ```
 
-### Select images from gallery
+### Chọn ảnh từ thư viện
 
 ```dart
 try {
@@ -48,18 +46,18 @@ try {
   );
   
   if (result != null && result.isNotEmpty) {
-    // Process selected images
+    // Xử lý ảnh đã chọn
     setState(() {
       _selectedMedia.addAll(result);
     });
   }
 } catch (e) {
-  // Handle errors
-  print('Error selecting images: $e');
+  // Xử lý lỗi
+  print('Lỗi chọn ảnh: $e');
 }
 ```
 
-### Take a photo with the camera
+### Chụp ảnh từ camera
 
 ```dart
 try {
@@ -78,15 +76,15 @@ try {
     });
   }
 } catch (e) {
-  print('Error taking photo: $e');
+  print('Lỗi chụp ảnh: $e');
 }
 ```
 
-### Using MediaPickerButton
+### Sử dụng MediaPickerButton
 
 ```dart
 MediaPickerButton(
-  text: 'Select Media',
+  text: 'Chọn Media',
   icon: Icons.add_photo_alternate,
   options: const MediaOptions(
     allowMultiple: true,
@@ -101,20 +99,20 @@ MediaPickerButton(
   },
   onError: (error) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${error.message}')),
+      SnackBar(content: Text('Lỗi: ${error.message}')),
     );
   },
 )
 ```
 
-### Crop a selected image
+### Cắt ảnh đã chọn
 
 ```dart
 final croppedImage = await _mediaController.cropImage(
   _selectedMedia[index],
   const CropOptions(
     aspectRatio: CropAspectRatio.square,
-    uiOptions: CropUIOptions(toolbarTitle: 'Edit Image'),
+    uiOptions: CropUIOptions(toolbarTitle: 'Chỉnh sửa ảnh'),
   ),
 );
 
@@ -125,7 +123,7 @@ if (croppedImage != null) {
 }
 ```
 
-### Display an image with MediaPreview
+### Hiển thị ảnh với MediaPreview
 
 ```dart
 MediaPreview(
@@ -140,11 +138,11 @@ MediaPreview(
 )
 ```
 
-## Permission and Library Configuration
+## Cấu hình quyền truy cập và thư viện
 
 ### Android
 
-Add to your `AndroidManifest.xml`:
+Thêm vào file `AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
@@ -152,9 +150,9 @@ Add to your `AndroidManifest.xml`:
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 ```
 
-#### Image Cropper Configuration for Android
+#### Cấu hình Image Cropper cho Android
 
-1. Add UCropActivity to your AndroidManifest.xml:
+1. Thêm UCropActivity vào AndroidManifest.xml:
 
 ```xml
 <activity
@@ -163,16 +161,16 @@ Add to your `AndroidManifest.xml`:
   android:theme="@style/Ucrop.CropTheme"/>
 ```
 
-2. Add Ucrop style to your `android/app/src/main/res/values/styles.xml`:
+2. Thêm style cho Ucrop vào file `android/app/src/main/res/values/styles.xml`:
 
 ```xml
 <resources>
-  <!-- Your other styles -->
+  <!-- Các style khác của bạn -->
   <style name="Ucrop.CropTheme" parent="Theme.AppCompat.Light.NoActionBar"/>
 </resources>
 ```
 
-3. Create a new file `android/app/src/main/res/values-v35/styles.xml` to support Android 15 (Edge-to-Edge mode):
+3. Tạo file mới `android/app/src/main/res/values-v35/styles.xml` để hỗ trợ Android 15 (Edge-to-Edge mode):
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -185,44 +183,44 @@ Add to your `AndroidManifest.xml`:
 
 ### iOS
 
-Add to your `Info.plist`:
+Thêm vào file `Info.plist`:
 
 ```xml
 <key>NSCameraUsageDescription</key>
-<string>This app needs camera access to take photos</string>
+<string>Ứng dụng cần quyền truy cập camera để chụp ảnh</string>
 <key>NSPhotoLibraryUsageDescription</key>
-<string>This app needs photo library access to select images</string>
+<string>Ứng dụng cần quyền truy cập thư viện ảnh để chọn hình ảnh</string>
 <key>NSMicrophoneUsageDescription</key>
-<string>This app needs microphone access to record videos</string>
+<string>Ứng dụng cần quyền truy cập microphone để quay video</string>
 ```
 
-#### Image Cropper Configuration for iOS
+#### Cấu hình Image Cropper cho iOS
 
-Image Cropper on iOS does not require additional configuration. This feature uses the TOCropViewController library and will work as soon as the package is installed.
+Image Cropper trên iOS không yêu cầu cấu hình bổ sung. Tính năng này sử dụng thư viện TOCropViewController và sẽ hoạt động ngay sau khi package được cài đặt.
 
 ### Web
 
-#### Image Cropper Configuration for Web
+#### Cấu hình Image Cropper cho Web
 
-To support image cropping on the web, add the following script and CSS tags to your `web/index.html` file in the `<head>` tag:
+Để hỗ trợ cắt ảnh trên web, thêm các thẻ script và css vào file `web/index.html` trong thẻ `<head>`:
 
 ```html
 <head>
-  <!-- Your other tags -->
+  <!-- Các thẻ khác của bạn -->
 
   <!-- cropperjs -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 
-  <!-- Your other tags -->
+  <!-- Các thẻ khác của bạn -->
 </head>
 ```
 
-> **Note**: To use the cropper on the web, you need to make sure you always provide `WebUiSettings` in the `uiSettings` of your options.
+> **Lưu ý**: Để sử dụng cropper trên web, bạn cần đảm bảo luôn cung cấp `WebUiSettings` trong `uiSettings` của options.
 
-## Advanced Options
+## Tùy chọn nâng cao
 
-### CropOptions Customization
+### Tùy chỉnh CropOptions
 
 ```dart
 CropOptions(
@@ -230,19 +228,19 @@ CropOptions(
   maxWidth: 1920,
   maxHeight: 1080,
   uiOptions: CropUIOptions(
-    toolbarTitle: 'Customize Image',
+    toolbarTitle: 'Tùy chỉnh ảnh',
     toolbarColor: Colors.black,
     toolbarTextColor: Colors.white,
     activeControlsColor: Colors.blue,
-    doneButtonText: 'Done',
-    cancelButtonText: 'Cancel',
+    doneButtonText: 'Xong',
+    cancelButtonText: 'Hủy',
   ),
 )
 ```
 
-### Detailed Example of Image Cropping
+### Ví dụ chi tiết về cắt ảnh
 
-Here's a comprehensive example of using `cropImage` with different UI configurations for each platform:
+Dưới đây là ví dụ đầy đủ về cách sử dụng `cropImage` với các cấu hình UI khác nhau cho từng nền tảng:
 
 ```dart
 final croppedImage = await _mediaController.cropImage(
@@ -252,42 +250,42 @@ final croppedImage = await _mediaController.cropImage(
     maxHeight: 1080,
     aspectRatio: CropAspectRatio.square,
     uiOptions: CropUIOptions(
-      toolbarTitle: 'Edit Image',
+      toolbarTitle: 'Chỉnh sửa ảnh',
       toolbarColor: Colors.deepOrange,
       toolbarTextColor: Colors.white,
       activeControlsColor: Colors.blue,
-      doneButtonText: 'Complete',
-      cancelButtonText: 'Cancel',
+      doneButtonText: 'Hoàn tất',
+      cancelButtonText: 'Hủy bỏ',
     ),
   ),
 );
 
 if (croppedImage != null) {
   setState(() {
-    // Update the cropped image
+    // Cập nhật ảnh đã cắt
     _selectedMedia[index] = croppedImage;
   });
 }
 ```
 
-### Crop Aspect Ratio Customization
+### Tùy chỉnh tỷ lệ cắt (Aspect Ratio)
 
-The module supports the following crop aspect ratios:
+Module hỗ trợ các tỷ lệ cắt ảnh sau:
 
 ```dart
 enum CropAspectRatio {
-  original,  // Keep original aspect ratio
-  square,    // Square (1:1)
-  ratio3x2,  // 3:2 ratio
-  ratio4x3,  // 4:3 ratio
-  ratio5x3,  // 5:3 ratio
-  ratio5x4,  // 5:4 ratio
-  ratio7x5,  // 7:5 ratio
-  ratio16x9, // 16:9 ratio
+  original,  // Giữ nguyên tỷ lệ gốc
+  square,    // Vuông (1:1)
+  ratio3x2,  // Tỷ lệ 3:2
+  ratio4x3,  // Tỷ lệ 4:3 
+  ratio5x3,  // Tỷ lệ 5:3
+  ratio5x4,  // Tỷ lệ 5:4
+  ratio7x5,  // Tỷ lệ 7:5
+  ratio16x9, // Tỷ lệ 16:9
 }
 ```
 
-### MediaOptions for Gallery
+### MediaOptions cho gallery
 
 ```dart
 MediaOptions.gallery(
@@ -300,7 +298,7 @@ MediaOptions.gallery(
 )
 ```
 
-### MediaOptions for Camera
+### MediaOptions cho camera
 
 ```dart
 MediaOptions.camera(
@@ -314,45 +312,45 @@ MediaOptions.camera(
 )
 ```
 
-## Error Handling
+## Xử lý lỗi
 
 ```dart
 try {
-  // Perform media operations
+  // Thực hiện các thao tác media
 } on MediaPermissionException catch (e) {
-  // Handle permission errors
+  // Xử lý lỗi quyền truy cập
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Permission Required'),
+      title: const Text('Cần cấp quyền'),
       content: Text(e.message),
       actions: [
         TextButton(
           onPressed: () => openAppSettings(),
-          child: const Text('Open Settings'),
+          child: const Text('Mở cài đặt'),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
+          child: const Text('Đóng'),
         ),
       ],
     ),
   );
 } on MediaOperationException catch (e) {
-  // Handle operation errors
+  // Xử lý lỗi thao tác
   showSnackBar(e.message);
 } on MediaTypeException catch (e) {
-  // Handle format errors
+  // Xử lý lỗi định dạng
   showSnackBar(e.message);
 } catch (e) {
-  // Handle other errors
-  showSnackBar('An error occurred: $e');
+  // Xử lý lỗi khác
+  showSnackBar('Đã xảy ra lỗi: $e');
 }
 ```
 
-## Example App
+## Ứng dụng mẫu
 
-This package provides a complete example app in the `example` directory. You can view and run it to better understand how to use the package.
+Package này cung cấp một ứng dụng mẫu đầy đủ trong thư mục `example`. Bạn có thể xem và chạy để hiểu rõ hơn cách sử dụng package.
 
 ```bash
 cd example
@@ -363,37 +361,37 @@ flutter run
 
 ### Classes
 
-- `MediaController`: Main controller for performing media operations
-- `MediaItem`: Represents a media file (image or video)
-- `MediaOptions`: Configuration for media selection
-- `CropOptions`: Configuration for image cropping
-- `MediaPickerButton`: Button widget for selecting media
-- `MediaPreview`: Widget for displaying media previews
+- `MediaController`: Controller chính để thực hiện các thao tác media
+- `MediaItem`: Đại diện cho một file media (ảnh hoặc video)
+- `MediaOptions`: Cấu hình cho việc chọn media
+- `CropOptions`: Cấu hình cho việc cắt ảnh
+- `MediaPickerButton`: Widget button để chọn media
+- `MediaPreview`: Widget hiển thị xem trước media
 
 ### Enums
 
-- `MediaType`: Media type (image, video)
-- `MediaSource`: Media source (gallery, camera)
-- `CropAspectRatio`: Aspect ratio for cropping
+- `MediaType`: Loại media (image, video)
+- `MediaSource`: Nguồn media (gallery, camera)
+- `CropAspectRatio`: Tỷ lệ khung hình cho cắt ảnh
 
-## Requirements
+## Yêu cầu
 
 - Flutter: >=1.17.0
 - Dart: >=3.7.0
 - Android: minSdkVersion 21 (Android 5.0)
-- iOS: iOS 11.0 or later
+- iOS: iOS 11.0 trở lên
 
-## Dependencies
+## Các package phụ thuộc
 
 - `image_picker`: ^1.1.2
 - `image_cropper`: ^9.0.0
 - `path_provider`: ^2.1.5
 - `permission_handler`: ^11.4.0
 
-## Contributing
+## Đóng góp
 
-Contributions are welcome! If you find a bug or have ideas to improve the package, please create an issue or submit a pull request.
+Mọi đóng góp đều được hoan nghênh! Nếu bạn phát hiện lỗi hoặc có ý tưởng cải thiện package, vui lòng tạo issue hoặc gửi pull request.
 
 ## License
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - xem file [LICENSE](LICENSE) để biết thêm chi tiết.
