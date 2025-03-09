@@ -13,3 +13,5 @@ export 'src/widgets/media_preview.dart';
 
 // Export utils
 export 'src/utils/media_exceptions.dart';
+
+//dart pub publish --dry-run
