@@ -15,6 +15,9 @@ class MediaController {
   final ImagePicker _picker = ImagePicker();
   final ImageCropper _cropper = ImageCropper();
 
+  // Thêm một DeviceInfoPlugin duy nhất cho toàn controller
+  final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
+
   // Flag to prevent multiple concurrent cropImage calls
   bool _isCropping = false;
 
@@ -35,32 +38,41 @@ class MediaController {
           }
         }
       } else {
-        // Nên dùng
         if (Platform.isAndroid) {
-          // Kiểm tra phiên bản Android
-          if (int.parse(
-                await DeviceInfoPlugin().androidInfo.then(
-                  (info) => info.version.release,
-                ),
-              ) >=
-              13) {
+          // Kiểm tra phiên bản Android sử dụng sdkInt
+          final androidInfo = await _deviceInfoPlugin.androidInfo;
+          final sdkVersion = androidInfo.version.sdkInt;
+
+          // Android 13 là API level 33
+          if (sdkVersion >= 33) {
             // Android 13+: Kiểm tra READ_MEDIA_IMAGES
-            final mediaImagesPermission = await Permission.photos.request();
+            final mediaImagesPermission = await Permission.photos.status;
             if (mediaImagesPermission.isDenied) {
-              throw MediaPermissionException('Media images permission denied');
+              final requestResult = await Permission.photos.request();
+              if (requestResult.isDenied) {
+                throw MediaPermissionException(
+                  'Media images permission denied',
+                );
+              }
             }
           } else {
             // Android <13: Kiểm tra READ_EXTERNAL_STORAGE
-            final storagePermission = await Permission.storage.request();
+            final storagePermission = await Permission.storage.status;
             if (storagePermission.isDenied) {
-              throw MediaPermissionException('Storage permission denied');
+              final requestResult = await Permission.storage.request();
+              if (requestResult.isDenied) {
+                throw MediaPermissionException('Storage permission denied');
+              }
             }
           }
         } else if (Platform.isIOS) {
           // iOS: Kiểm tra quyền photos
-          final photosPermission = await Permission.photos.request();
+          final photosPermission = await Permission.photos.status;
           if (photosPermission.isDenied) {
-            throw MediaPermissionException('Photos permission denied');
+            final requestResult = await Permission.photos.request();
+            if (requestResult.isDenied) {
+              throw MediaPermissionException('Photos permission denied');
+            }
           }
         }
       }
