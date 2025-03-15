@@ -5,125 +5,251 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:logging/logging.dart';
 
 import '../models/media_item.dart';
 import '../models/media_options.dart';
 import '../utils/media_exceptions.dart';
 
+/// Loại thông báo
+enum NotificationType { error, success, permission }
+
+/// Handler cho các thông báo từ MediaController
+abstract class MediaNotificationHandler {
+  /// Xử lý thông báo
+  void handleNotification(
+    NotificationType type,
+    String message, {
+    dynamic data,
+  });
+
+  /// Yêu cầu quyền
+  Future<bool> requestPermission(Permission permission, String message);
+}
+
+/// Handler mặc định sử dụng Logger
+class DefaultMediaNotificationHandler implements MediaNotificationHandler {
+  final Logger _logger;
+
+  /// Constructor
+  DefaultMediaNotificationHandler({Logger? logger})
+    : _logger = logger ?? Logger('MediaController');
+
+  @override
+  void handleNotification(
+    NotificationType type,
+    String message, {
+    dynamic data,
+  }) {
+    switch (type) {
+      case NotificationType.error:
+        _logger.warning('$message${data != null ? " | Data: $data" : ""}');
+        break;
+      case NotificationType.success:
+        _logger.info('$message${data != null ? " | Data: $data" : ""}');
+        break;
+      default:
+        _logger.fine('$message${data != null ? " | Data: $data" : ""}');
+    }
+  }
+
+  @override
+  Future<bool> requestPermission(Permission permission, String message) async {
+    _logger.info('Permission request: ${permission.toString()} - $message');
+    return true; // Luôn cho phép request
+  }
+}
+
 /// Controller for handling media operations
 class MediaController {
   final ImagePicker _picker = ImagePicker();
   final ImageCropper _cropper = ImageCropper();
-
-  // Thêm một DeviceInfoPlugin duy nhất cho toàn controller
   final DeviceInfoPlugin _deviceInfoPlugin = DeviceInfoPlugin();
+  final MediaNotificationHandler _notificationHandler;
+  final Logger _logger = Logger('MediaController');
 
-  // Flag to prevent multiple concurrent cropImage calls
   bool _isCropping = false;
+
+  /// Khởi tạo với notification handler tùy chọn
+  MediaController({MediaNotificationHandler? notificationHandler})
+    : _notificationHandler =
+          notificationHandler ?? DefaultMediaNotificationHandler();
+
+  /// Setup logger cho controller
+  static void setupLogging({Level logLevel = Level.INFO}) {
+    Logger.root.level = logLevel;
+    Logger.root.onRecord.listen((record) {
+      // Chỉ log vào debug console, không lưu log file hay hiển thị UI
+      // Người dùng package cần tự cấu hình logger nếu muốn
+      if (record.level >= Level.INFO) {
+        // ignore: avoid_print
+        print('${record.level.name}: ${record.time}: ${record.message}');
+      }
+    });
+  }
 
   /// Select media from gallery or camera
   Future<List<MediaItem>> pickMedia(MediaOptions options) async {
     try {
-      // Check permissions
-      if (options.source == MediaSource.camera) {
-        final cameraPermission = await Permission.camera.request();
-        if (cameraPermission.isDenied) {
-          throw MediaPermissionException('Camera permission denied');
-        }
+      _logger.fine('Bắt đầu chọn media với options: $options');
 
-        if (options.includeVideo) {
-          final microphonePermission = await Permission.microphone.request();
-          if (microphonePermission.isDenied) {
-            throw MediaPermissionException('Microphone permission denied');
-          }
-        }
-      } else {
-        if (Platform.isAndroid) {
-          // Kiểm tra phiên bản Android sử dụng sdkInt
-          final androidInfo = await _deviceInfoPlugin.androidInfo;
-          final sdkVersion = androidInfo.version.sdkInt;
-
-          // Android 13 là API level 33
-          if (sdkVersion >= 33) {
-            // Android 13+: Kiểm tra READ_MEDIA_IMAGES
-            final mediaImagesPermission = await Permission.photos.status;
-            if (mediaImagesPermission.isDenied) {
-              final requestResult = await Permission.photos.request();
-              if (requestResult.isDenied) {
-                throw MediaPermissionException(
-                  'Media images permission denied',
-                );
-              }
-            }
-          } else {
-            // Android <13: Kiểm tra READ_EXTERNAL_STORAGE
-            final storagePermission = await Permission.storage.status;
-            if (storagePermission.isDenied) {
-              final requestResult = await Permission.storage.request();
-              if (requestResult.isDenied) {
-                throw MediaPermissionException('Storage permission denied');
-              }
-            }
-          }
-        } else if (Platform.isIOS) {
-          // iOS: Kiểm tra quyền photos
-          final photosPermission = await Permission.photos.status;
-          if (photosPermission.isDenied) {
-            final requestResult = await Permission.photos.request();
-            if (requestResult.isDenied) {
-              throw MediaPermissionException('Photos permission denied');
-            }
-          }
-        }
-      }
+      // Kiểm tra quyền
+      await _checkPermissions(options);
 
       // Pick media from selected source
+      List<MediaItem> result;
       if (options.includeVideo) {
-        return _pickVideo(options);
+        result = await _pickVideo(options);
       } else {
-        return _pickImage(options);
+        result = await _pickImage(options);
       }
+
+      if (result.isNotEmpty) {
+        _logger.info('Đã chọn ${result.length} media item');
+        _notificationHandler.handleNotification(
+          NotificationType.success,
+          'Đã chọn ${result.length} media item',
+          data: result.length == 1 ? result.first : null,
+        );
+      }
+
+      return result;
     } catch (e) {
       if (e is MediaException) {
+        _logger.warning('MediaException: ${e.message}');
+        _notificationHandler.handleNotification(
+          NotificationType.error,
+          e.message,
+          data: e,
+        );
         rethrow;
       }
-      throw MediaOperationException('Failed to pick media: ${e.toString()}');
+      final exception = MediaOperationException(
+        'Không thể chọn media: ${e.toString()}',
+      );
+      _logger.severe('Lỗi không xác định: ${e.toString()}');
+      _notificationHandler.handleNotification(
+        NotificationType.error,
+        exception.message,
+        data: exception,
+      );
+      throw exception;
     }
   }
 
-  /// Crop the selected image - with safe guard against concurrent calls
+  /// Kiểm tra và yêu cầu quyền cần thiết
+  Future<void> _checkPermissions(MediaOptions options) async {
+    if (options.source == MediaSource.camera) {
+      // Quyền camera
+      await _requestAndVerifyPermission(
+        Permission.camera,
+        'Ứng dụng cần quyền truy cập camera để chụp ảnh',
+      );
+
+      // Quyền microphone cho video
+      if (options.includeVideo) {
+        await _requestAndVerifyPermission(
+          Permission.microphone,
+          'Ứng dụng cần quyền truy cập microphone để ghi âm video',
+        );
+      }
+    } else {
+      // Quyền gallery/storage
+      if (Platform.isAndroid) {
+        final androidInfo = await _deviceInfoPlugin.androidInfo;
+        final sdkVersion = androidInfo.version.sdkInt;
+
+        if (sdkVersion >= 33) {
+          await _requestAndVerifyPermission(
+            Permission.photos,
+            'Ứng dụng cần quyền truy cập thư viện ảnh',
+          );
+        } else {
+          await _requestAndVerifyPermission(
+            Permission.storage,
+            'Ứng dụng cần quyền truy cập bộ nhớ để mở thư viện ảnh',
+          );
+        }
+      } else if (Platform.isIOS) {
+        await _requestAndVerifyPermission(
+          Permission.photos,
+          'Ứng dụng cần quyền truy cập thư viện ảnh',
+        );
+      }
+    }
+  }
+
+  /// Yêu cầu và kiểm tra quyền
+  Future<void> _requestAndVerifyPermission(
+    Permission permission,
+    String message,
+  ) async {
+    _logger.fine('Yêu cầu quyền: ${permission.toString()}');
+
+    // Yêu cầu xác nhận trước khi request quyền
+    final shouldRequest = await _notificationHandler.requestPermission(
+      permission,
+      message,
+    );
+    if (!shouldRequest) {
+      _logger.warning(
+        'Người dùng từ chối xác nhận quyền: ${permission.toString()}',
+      );
+      throw MediaPermissionException(
+        'Người dùng từ chối xác nhận quyền: ${permission.toString()}',
+      );
+    }
+
+    // Yêu cầu quyền
+    final status = await permission.request();
+    if (!status.isGranted) {
+      _logger.warning(
+        'Quyền không được cấp: ${permission.toString()} - Status: ${status.toString()}',
+      );
+      throw MediaPermissionException(
+        'Quyền không được cấp: ${permission.toString()}',
+      );
+    }
+
+    _logger.fine('Đã được cấp quyền: ${permission.toString()}');
+  }
+
+  /// Crop selected image
   Future<MediaItem?> cropImage(
     MediaItem mediaItem,
     CropOptions cropOptions,
   ) async {
-    // Prevent concurrent cropping
     if (_isCropping) {
-      throw MediaOperationException('Another crop operation is in progress');
+      _logger.warning('Đang có thao tác crop khác đang xử lý');
+      _notificationHandler.handleNotification(
+        NotificationType.error,
+        'Đang có thao tác crop khác đang xử lý',
+      );
+      throw MediaOperationException('Đang có thao tác crop khác đang xử lý');
     }
 
     try {
       _isCropping = true;
+      _logger.fine('Bắt đầu crop ảnh: ${mediaItem.path}');
 
       if (mediaItem.type != MediaType.image) {
-        throw MediaTypeException('Cannot crop non-image media');
+        _logger.warning('Không thể crop media không phải ảnh');
+        throw MediaTypeException('Không thể crop media không phải ảnh');
       }
 
-      // Make a copy of the file before cropping to prevent issues
+      // Copy file vào thư mục tạm
       final tempDir = await getTemporaryDirectory();
       final tempFilePath = path.join(
         tempDir.path,
         'temp_${DateTime.now().millisecondsSinceEpoch}${path.extension(mediaItem.path)}',
       );
 
-      // Copy file to temporary location
       await File(mediaItem.path).copy(tempFilePath);
-
-      // Wait briefly to ensure Android activity is ready
       await Future.delayed(const Duration(milliseconds: 200));
 
       final options = cropOptions.toCropperOptions();
 
-      // Use try-catch specifically for the cropper to isolate issues
+      _logger.fine('Gọi image_cropper với sourcePath: $tempFilePath');
       CroppedFile? croppedFile;
       try {
         croppedFile = await _cropper.cropImage(
@@ -134,39 +260,67 @@ class MediaController {
           uiSettings: options['uiSettings'] as List<PlatformUiSettings>,
         );
       } catch (cropError) {
-        // Ignore specific errors that might be related to "Reply already submitted"
+        _logger.warning('Lỗi khi crop: ${cropError.toString()}');
+        // Xử lý lỗi đặc biệt "Reply already submitted"
         if (cropError.toString().contains('Reply already submitted')) {
-          // In this case, the crop might have succeeded but we got an error in reply
-          // Try to check if a cropped file was created with standard naming pattern
           final potentialCroppedPath = tempFilePath.replaceFirst(
             RegExp(r'\.[^\.]+$'),
             '_cropped${path.extension(tempFilePath)}',
           );
 
+          _logger.fine('Kiểm tra file thay thế: $potentialCroppedPath');
           if (await File(potentialCroppedPath).exists()) {
+            _logger.info('Tìm thấy file crop thay thế');
             croppedFile = CroppedFile(potentialCroppedPath);
           }
         } else {
-          // For other errors, rethrow
           rethrow;
         }
       }
 
-      // Clean up the temp file
+      // Xóa file tạm
       try {
         await File(tempFilePath).delete();
-      } catch (_) {}
+        _logger.fine('Đã xóa file tạm: $tempFilePath');
+      } catch (e) {
+        _logger.fine('Không thể xóa file tạm: $e');
+      }
 
       if (croppedFile == null) {
+        _logger.info('Người dùng đã hủy thao tác crop');
         return null;
       }
 
-      return MediaItem.fromFile(File(croppedFile.path));
+      final result = MediaItem.fromFile(File(croppedFile.path));
+      _logger.info('Đã crop ảnh thành công: ${result.path}');
+      _notificationHandler.handleNotification(
+        NotificationType.success,
+        'Đã crop ảnh thành công',
+        data: result,
+      );
+
+      return result;
     } catch (e) {
       if (e is MediaException) {
+        _logger.warning('MediaException khi crop: ${e.message}');
+        _notificationHandler.handleNotification(
+          NotificationType.error,
+          e.message,
+          data: e,
+        );
         rethrow;
       }
-      throw MediaOperationException('Failed to crop image: ${e.toString()}');
+
+      _logger.severe('Lỗi không xác định khi crop: ${e.toString()}');
+      final exception = MediaOperationException(
+        'Không thể crop ảnh: ${e.toString()}',
+      );
+      _notificationHandler.handleNotification(
+        NotificationType.error,
+        exception.message,
+        data: exception,
+      );
+      throw exception;
     } finally {
       _isCropping = false;
     }
@@ -178,6 +332,7 @@ class MediaController {
     String? filename,
   }) async {
     try {
+      _logger.fine('Bắt đầu lưu media: ${mediaItem.path}');
       final tempDir = await getTemporaryDirectory();
       final fileName =
           filename ??
@@ -185,8 +340,9 @@ class MediaController {
       final targetPath = path.join(tempDir.path, fileName);
 
       final File newFile = await mediaItem.file.copy(targetPath);
+      _logger.fine('Đã copy file tới: $targetPath');
 
-      return MediaItem(
+      final result = MediaItem(
         file: newFile,
         path: newFile.path,
         name: fileName,
@@ -194,16 +350,36 @@ class MediaController {
         size: newFile.lengthSync(),
         thumbnail: mediaItem.thumbnail,
       );
+
+      _logger.info('Đã lưu media vào thư mục tạm: $targetPath');
+      _notificationHandler.handleNotification(
+        NotificationType.success,
+        'Đã lưu media vào thư mục tạm',
+        data: result,
+      );
+
+      return result;
     } catch (e) {
-      throw MediaOperationException('Failed to save media: ${e.toString()}');
+      _logger.severe('Lỗi khi lưu media: ${e.toString()}');
+      final exception = MediaOperationException(
+        'Không thể lưu media: ${e.toString()}',
+      );
+      _notificationHandler.handleNotification(
+        NotificationType.error,
+        exception.message,
+        data: exception,
+      );
+      throw exception;
     }
   }
 
   /// Pick image(s) from gallery or camera
   Future<List<MediaItem>> _pickImage(MediaOptions options) async {
     try {
+      _logger.fine('Bắt đầu chọn ảnh với source: ${options.source}');
       if (options.allowMultiple && options.source == MediaSource.gallery) {
-        // Pick multiple images
+        // Chọn nhiều ảnh
+        _logger.fine('Chọn nhiều ảnh từ gallery');
         final List<XFile> pickedFiles = await _picker.pickMultiImage(
           imageQuality: options.imageQuality,
           maxWidth: options.maxWidth?.toDouble(),
@@ -211,6 +387,7 @@ class MediaController {
         );
 
         if (pickedFiles.isEmpty) {
+          _logger.info('Người dùng không chọn ảnh nào');
           return [];
         }
 
@@ -218,9 +395,11 @@ class MediaController {
             pickedFiles
                 .map((file) => MediaItem.fromFile(File(file.path)))
                 .toList();
+        _logger.fine('Đã chọn ${mediaItems.length} ảnh');
 
-        // Apply cropping if requested - do one at a time
+        // Áp dụng crop nếu có yêu cầu
         if (options.cropOptions != null) {
+          _logger.fine('Bắt đầu crop ${mediaItems.length} ảnh');
           List<MediaItem> croppedItems = [];
           for (var item in mediaItems) {
             try {
@@ -228,15 +407,14 @@ class MediaController {
               if (cropped != null) {
                 croppedItems.add(cropped);
               } else {
-                // Fallback to original if crop failed/canceled
                 croppedItems.add(item);
               }
-              // Add delay between crop operations
+
               if (mediaItems.indexOf(item) < mediaItems.length - 1) {
                 await Future.delayed(const Duration(milliseconds: 500));
               }
             } catch (e) {
-              // On error, keep original item
+              _logger.warning('Lỗi khi crop ảnh ${item.path}: $e');
               croppedItems.add(item);
             }
           }
@@ -245,7 +423,10 @@ class MediaController {
 
         return mediaItems;
       } else {
-        // Pick single image
+        // Chọn một ảnh
+        _logger.fine(
+          'Chọn một ảnh từ ${options.source == MediaSource.camera ? 'camera' : 'gallery'}',
+        );
         final XFile? pickedFile = await _picker.pickImage(
           source:
               options.source == MediaSource.camera
@@ -258,33 +439,40 @@ class MediaController {
         );
 
         if (pickedFile == null) {
+          _logger.info('Người dùng không chọn ảnh');
           return [];
         }
 
         MediaItem mediaItem = MediaItem.fromFile(File(pickedFile.path));
+        _logger.fine('Đã chọn ảnh: ${mediaItem.path}');
 
-        // Apply cropping if requested, but with safe handling
+        // Áp dụng crop nếu có yêu cầu
         if (options.cropOptions != null) {
+          _logger.fine('Bắt đầu crop ảnh');
           try {
-            // Add delay before cropping
             await Future.delayed(const Duration(milliseconds: 300));
             final cropped = await cropImage(mediaItem, options.cropOptions!);
             return cropped != null ? [cropped] : [mediaItem];
           } catch (e) {
-            return [mediaItem]; // Return original image on error
+            _logger.warning('Lỗi khi crop ảnh: $e');
+            return [mediaItem];
           }
         }
 
         return [mediaItem];
       }
     } catch (e) {
-      throw MediaOperationException('Failed to pick image: ${e.toString()}');
+      _logger.severe('Lỗi khi chọn ảnh: ${e.toString()}');
+      throw MediaOperationException('Không thể chọn ảnh: ${e.toString()}');
     }
   }
 
   /// Pick video from gallery or camera
   Future<List<MediaItem>> _pickVideo(MediaOptions options) async {
     try {
+      _logger.fine(
+        'Bắt đầu chọn video từ ${options.source == MediaSource.camera ? 'camera' : 'gallery'}',
+      );
       final XFile? pickedFile = await _picker.pickVideo(
         source:
             options.source == MediaSource.camera
@@ -294,12 +482,18 @@ class MediaController {
       );
 
       if (pickedFile == null) {
+        _logger.info('Người dùng không chọn video');
         return [];
       }
 
-      return [MediaItem.fromFile(File(pickedFile.path), type: MediaType.video)];
+      final result = [
+        MediaItem.fromFile(File(pickedFile.path), type: MediaType.video),
+      ];
+      _logger.fine('Đã chọn video: ${result.first.path}');
+      return result;
     } catch (e) {
-      throw MediaOperationException('Failed to pick video: ${e.toString()}');
+      _logger.severe('Lỗi khi chọn video: ${e.toString()}');
+      throw MediaOperationException('Không thể chọn video: ${e.toString()}');
     }
   }
 }
