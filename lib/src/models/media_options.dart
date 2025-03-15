@@ -131,9 +131,11 @@ class CropOptions {
           activeControlsWidgetColor:
               uiOptions!.activeControlsColor ?? Colors.blue,
           initAspectRatio: _getDefaultAspectRatio(),
-          // Sửa các vấn đề với thuộc tính kiểu double
-          cropGridStrokeWidth: uiOptions!.cropGridStrokeWidth,
-          cropFrameStrokeWidth: uiOptions!.cropFrameStrokeWidth,
+          // Các thuộc tính bổ sung cho Android
+          cropFrameColor: uiOptions!.cropFrameColor,
+          cropGridColor: uiOptions!.cropGridColor,
+          cropGridStrokeWidth: uiOptions!.cropGridStrokeWidth.toIntOrNull(),
+          cropFrameStrokeWidth: uiOptions!.cropFrameStrokeWidth.toIntOrNull(),
           showCropGrid: uiOptions!.showCropGrid ?? true,
           lockAspectRatio: uiOptions!.lockAspectRatio ?? false,
           hideBottomControls: uiOptions!.hideBottomControls ?? false,
@@ -238,10 +240,10 @@ class CropUIOptions {
   final Color? cropGridColor;
 
   /// Stroke width for crop grid
-  final int? cropGridStrokeWidth;
+  final double? cropGridStrokeWidth;
 
   /// Stroke width for crop frame
-  final int? cropFrameStrokeWidth;
+  final double? cropFrameStrokeWidth;
 
   /// Lock aspect ratio
   final bool? lockAspectRatio;
@@ -320,6 +322,12 @@ class CropUIOptions {
     this.initialCropRectWidth,
     this.initialCropRectHeight,
   });
+}
+
+extension DoubleExtension on double? {
+  int? toIntOrNull() {
+    return this?.toInt();
+  }
 }
 
 /// Enum for crop aspect ratios
