@@ -131,6 +131,15 @@ class CropOptions {
           activeControlsWidgetColor:
               uiOptions!.activeControlsColor ?? Colors.blue,
           initAspectRatio: _getDefaultAspectRatio(),
+          // Sửa các vấn đề với thuộc tính kiểu double
+          cropGridStrokeWidth: uiOptions!.cropGridStrokeWidth,
+          cropFrameStrokeWidth: uiOptions!.cropFrameStrokeWidth,
+          showCropGrid: uiOptions!.showCropGrid ?? true,
+          lockAspectRatio: uiOptions!.lockAspectRatio ?? false,
+          hideBottomControls: uiOptions!.hideBottomControls ?? false,
+          statusBarColor: uiOptions!.statusBarColor,
+          dimmedLayerColor: uiOptions!.dimmedLayerColor,
+          backgroundColor: uiOptions!.backgroundColor,
         ),
       );
 
@@ -140,8 +149,33 @@ class CropOptions {
           title: uiOptions!.toolbarTitle,
           doneButtonTitle: uiOptions!.doneButtonText,
           cancelButtonTitle: uiOptions!.cancelButtonText,
+          // Các thuộc tính bổ sung cho iOS
+          hidesNavigationBar: uiOptions!.hidesNavigationBar,
+          aspectRatioPickerButtonHidden:
+              uiOptions!.hideAspectRatioButton ?? false,
+          resetButtonHidden: uiOptions!.hideResetButton ?? false,
+          rotateButtonsHidden: uiOptions!.hideRotateButton ?? false,
+          aspectRatioLockEnabled: uiOptions!.lockAspectRatio ?? false,
+          resetAspectRatioEnabled: uiOptions!.resetAspectRatioEnabled ?? true,
+          rotateClockwiseButtonHidden:
+              uiOptions!.hideRotateClockwiseButton ?? false,
+          minimumAspectRatio: uiOptions!.minimumAspectRatio,
+          rectX: uiOptions!.initialCropRectX,
+          rectY: uiOptions!.initialCropRectY,
+          rectWidth: uiOptions!.initialCropRectWidth,
+          rectHeight: uiOptions!.initialCropRectHeight,
         ),
       );
+    } else {
+      // Cung cấp thiết lập mặc định nếu không có uiOptions
+      uiSettingsList.add(
+        AndroidUiSettings(
+          toolbarTitle: 'Crop Image',
+          initAspectRatio: _getDefaultAspectRatio(),
+        ),
+      );
+
+      uiSettingsList.add(IOSUiSettings(title: 'Crop Image'));
     }
 
     return {'uiSettings': uiSettingsList};
@@ -194,6 +228,69 @@ class CropUIOptions {
   /// Text for the cancel button
   final String cancelButtonText;
 
+  /// Show crop grid
+  final bool? showCropGrid;
+
+  /// Color for crop frame
+  final Color? cropFrameColor;
+
+  /// Color for crop grid
+  final Color? cropGridColor;
+
+  /// Stroke width for crop grid
+  final int? cropGridStrokeWidth;
+
+  /// Stroke width for crop frame
+  final int? cropFrameStrokeWidth;
+
+  /// Lock aspect ratio
+  final bool? lockAspectRatio;
+
+  /// Hide bottom controls
+  final bool? hideBottomControls;
+
+  /// Status bar color (Android)
+  final Color? statusBarColor;
+
+  /// Dimmed layer color (Android)
+  final Color? dimmedLayerColor;
+
+  /// Background color (Android)
+  final Color? backgroundColor;
+
+  /// Hide navigation bar (iOS)
+  final bool? hidesNavigationBar;
+
+  /// Hide reset button (iOS)
+  final bool? hideResetButton;
+
+  /// Hide rotate button (iOS)
+  final bool? hideRotateButton;
+
+  /// Hide aspect ratio button (iOS)
+  final bool? hideAspectRatioButton;
+
+  /// Hide rotate clockwise button (iOS)
+  final bool? hideRotateClockwiseButton;
+
+  /// Enable reset aspect ratio (iOS)
+  final bool? resetAspectRatioEnabled;
+
+  /// Minimum aspect ratio (iOS)
+  final double? minimumAspectRatio;
+
+  /// Initial crop rectangle X (iOS)
+  final double? initialCropRectX;
+
+  /// Initial crop rectangle Y (iOS)
+  final double? initialCropRectY;
+
+  /// Initial crop rectangle width (iOS)
+  final double? initialCropRectWidth;
+
+  /// Initial crop rectangle height (iOS)
+  final double? initialCropRectHeight;
+
   const CropUIOptions({
     this.toolbarTitle = 'Crop Image',
     this.toolbarColor,
@@ -201,6 +298,27 @@ class CropUIOptions {
     this.activeControlsColor,
     this.doneButtonText = 'Done',
     this.cancelButtonText = 'Cancel',
+    this.showCropGrid,
+    this.cropFrameColor,
+    this.cropGridColor,
+    this.cropGridStrokeWidth,
+    this.cropFrameStrokeWidth,
+    this.lockAspectRatio,
+    this.hideBottomControls,
+    this.statusBarColor,
+    this.dimmedLayerColor,
+    this.backgroundColor,
+    this.hidesNavigationBar,
+    this.hideResetButton,
+    this.hideRotateButton,
+    this.hideAspectRatioButton,
+    this.hideRotateClockwiseButton,
+    this.resetAspectRatioEnabled,
+    this.minimumAspectRatio,
+    this.initialCropRectX,
+    this.initialCropRectY,
+    this.initialCropRectWidth,
+    this.initialCropRectHeight,
   });
 }
 
